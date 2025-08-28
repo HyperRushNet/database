@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Zorg dat de app op 0.0.0.0 luistert (Render Free)
+builder.WebHost.UseUrls("http://0.0.0.0:10000");
 var app = builder.Build();
 
 // Data folder
@@ -13,7 +16,7 @@ if (!Directory.Exists(dataFolder)) Directory.CreateDirectory(dataFolder);
 // In-memory queue voor batching
 var batchQueue = new ConcurrentQueue<string>();
 var currentChunk = GetLastChunkNumber(dataFolder) + 1;
-var maxItemsPerChunk = 1000; // pas aan naar wens
+var maxItemsPerChunk = 1000; // aanpasbaar
 
 // Helper: laatste chunk number
 int GetLastChunkNumber(string folder)
@@ -23,7 +26,7 @@ int GetLastChunkNumber(string folder)
     return files.Select(f => int.Parse(Path.GetFileNameWithoutExtension(f))).Max();
 }
 
-// Flush in-memory queue naar chunk file
+// Flush queue naar nieuwe chunk file
 async Task FlushQueue()
 {
     if (batchQueue.IsEmpty) return;
@@ -39,11 +42,14 @@ async Task FlushQueue()
     currentChunk++;
 }
 
-// Background timer flush
-var flushTimer = new System.Threading.Timer(async _ => await FlushQueue(), null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
+// Background flush timer safe
+var flushTimer = new System.Threading.Timer(async _ =>
+{
+    try { await FlushQueue(); } 
+    catch (Exception ex) { Console.WriteLine("Flush error: " + ex); }
+}, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
 
 // Routes
-
 app.MapGet("/", () => Results.Text("Hello Render Free chunked file API!"));
 
 app.MapGet("/items", () =>
@@ -64,7 +70,6 @@ app.MapPost("/items", (ItemCreate req) =>
     return Results.Accepted();
 });
 
-// Optioneel: flush handmatig
 app.MapPost("/flush", async () =>
 {
     await FlushQueue();
