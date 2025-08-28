@@ -28,13 +28,16 @@ Each JSON file contains:
 
 ```json
 {
-  "id": "<unique-id>",
-  "type": "<type-name>",
-  "createdAt": "<timestamp>",
-  "payload": { ... },
-  "relativePath": "<file-path>",
-  "sizeBytes": <file-size>
+  "id": "1234abc",
+  "type": "products",
+  "createdAt": "2025-08-28T21:10:43.885Z",
+  "payload": {
+    "name": "Mini Product"
+  },
+  "relativePath": "products/12/34/1234abc.json",
+  "sizeBytes": 123
 }
+
 ```
 
 ## API Endpoints
@@ -50,11 +53,11 @@ DELETE /database/item?type=<type>&id=<id> → Delete a specific item by ID
 ## Usage
 
 ### Add an item:
-
+```text
 curl -X POST "https://[your-app].onrender.com/database?type=users" \
 -H "Content-Type: application/json" \
--d '{"name": "Alice", "email": "alice@example.com"}'
-
+-d '{"name": "your-name", "email": "your-name@example.com"}'
+```
 
 ### Retrieve all items of a type:
 
