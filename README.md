@@ -79,3 +79,17 @@ curl -X DELETE "https://[your-app].onrender.com/database/item?type=users&id=<ite
 - Extremely lightweight and fast
 - Easy to debug and migrate
 - Flexible and expandable for any data type
+- Written in C# for speed
+
+## Deployment
+This database can only be deployed on **one platform**: [Render](https://render.com).  
+Make sure to deploy this code as a **web service**; otherwise, it **will not function**.
+
+---
+
+## DISCLAIMER
+The data in this database is **not encrypted**. If someone gains access to the server, they can read all stored information.  
+For added security, you may choose to **encode or encrypt data on the client side**.
+
+**Liability Notice:** HyperRushNet is **not responsible** for any data leaks, misuse, or incidents that occur outside the official HyperRush database link or official channels. Use at your own risk.
+
