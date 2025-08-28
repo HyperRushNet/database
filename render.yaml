@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: simple-file-database-api
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DATA_FILE
+        value: "/data/data.json"
+    disk:
+      name: data-disk
+      mountPath: /data
+      sizeGB: 1
