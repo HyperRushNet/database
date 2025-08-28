@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: simple-file-database
-    runtime: docker
-    plan: free
-    autoDeploy: true
-    envVars:
-      - key: DOTNET_RUNNING_IN_CONTAINER
-        value: "true"
