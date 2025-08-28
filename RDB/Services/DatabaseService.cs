@@ -1,79 +1,67 @@
 using System.Text.Json;
-using RDB.Models;
+using System.Collections.Concurrent;
 
 namespace RDB.Services;
+
+public class ItemEnvelope
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Type { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object> Payload { get; set; } = new();
+}
 
 public class DatabaseService
 {
     private readonly string _root = "data";
-    private readonly Dictionary<string, Dictionary<string, ItemEnvelope>> _cache = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, ItemEnvelope>> _cache
+        = new();
 
     public DatabaseService()
     {
-        if (!Directory.Exists(_root)) Directory.CreateDirectory(_root);
+        Directory.CreateDirectory(_root);
     }
 
-    private string GetFilePath(string type, string id)
+    public Task<ItemEnvelope> AddItem(string type, Dictionary<string, object> payload)
     {
-        var p1 = id.Substring(0, 2);
-        var p2 = id.Substring(2, 2);
-        var dir = Path.Combine(_root, type, p1, p2);
-        Directory.CreateDirectory(dir);
-        return Path.Combine(dir, id + ".json");
+        var item = new ItemEnvelope { Type = type, Payload = payload };
+        var dict = _cache.GetOrAdd(type, _ => new ConcurrentDictionary<string, ItemEnvelope>());
+        dict[item.Id] = item;
+
+        SaveItem(type, item);
+        return Task.FromResult(item);
     }
 
-    public async Task<ItemEnvelope> AddItem(string type, Dictionary<string, object> payload)
+    public Task<List<ItemEnvelope>> GetItems(string type)
     {
-        var id = Guid.NewGuid().ToString("N");
-        var item = new ItemEnvelope
+        if (_cache.TryGetValue(type, out var dict))
+            return Task.FromResult(dict.Values.ToList());
+        return Task.FromResult(new List<ItemEnvelope>());
+    }
+
+    public Task<ItemEnvelope?> GetItem(string type, string id)
+    {
+        if (_cache.TryGetValue(type, out var dict) && dict.TryGetValue(id, out var item))
+            return Task.FromResult<ItemEnvelope?>(item);
+        return Task.FromResult<ItemEnvelope?>(null);
+    }
+
+    public Task<bool> DeleteItem(string type, string id)
+    {
+        if (_cache.TryGetValue(type, out var dict) && dict.TryRemove(id, out var _))
         {
-            Id = id,
-            Type = type,
-            CreatedAt = DateTime.UtcNow,
-            Payload = payload,
-            RelativePath = GetFilePath(type, id),
-            SizeBytes = 0
-        };
-        var json = JsonSerializer.Serialize(item);
-        await File.WriteAllTextAsync(item.RelativePath, json);
-        item.SizeBytes = json.Length;
-
-        if (!_cache.ContainsKey(type)) _cache[type] = new();
-        _cache[type][id] = item;
-
-        return new ItemEnvelope { Id = id };
-    }
-
-    public async Task<ItemEnvelope?> GetItem(string type, string id)
-    {
-        var path = GetFilePath(type, id);
-        if (!File.Exists(path)) return null;
-        var json = await File.ReadAllTextAsync(path);
-        return JsonSerializer.Deserialize<ItemEnvelope>(json);
-    }
-
-    public async Task<List<ItemEnvelope>> ListItems(string type)
-    {
-        var items = new List<ItemEnvelope>();
-        var typeDir = Path.Combine(_root, type);
-        if (!Directory.Exists(typeDir)) return items;
-
-        foreach (var file in Directory.EnumerateFiles(typeDir, "*.json", SearchOption.AllDirectories))
-        {
-            var json = await File.ReadAllTextAsync(file);
-            var item = JsonSerializer.Deserialize<ItemEnvelope>(json);
-            if (item != null) items.Add(item);
+            var path = Path.Combine(_root, type, $"{id}.json");
+            if (File.Exists(path)) File.Delete(path);
+            return Task.FromResult(true);
         }
-        return items;
+        return Task.FromResult(false);
     }
 
-    public async Task<bool> DeleteItem(string type, string id)
+    private void SaveItem(string type, ItemEnvelope item)
     {
-        var path = GetFilePath(type, id);
-        if (File.Exists(path)) File.Delete(path);
-        _cache.GetValueOrDefault(type)?.Remove(id);
-        return true;
+        var dir = Path.Combine(_root, type);
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"{item.Id}.json");
+        File.WriteAllText(path, JsonSerializer.Serialize(item));
     }
-
-    public List<string> ListTypes() => Directory.Exists(_root) ? Directory.GetDirectories(_root).Select(Path.GetFileName).ToList() : new();
 }
