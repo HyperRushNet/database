@@ -11,4 +11,4 @@ services:
       - key: DATA_DIR
         value: /data
     buildCommand: docker build -t database .
-    startCommand: dotnet Database.dll
+    startCommand: docker run -p 8080:8080 database
