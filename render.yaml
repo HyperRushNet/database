@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: chunked-api
-    env: docker
-    plan: free
-    dockerfilePath: Dockerfile
-    autoDeploy: true
-    port: 10000
