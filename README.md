@@ -15,14 +15,14 @@ RDB (Recursive Database) is a **lightweight, type-agnostic JSON file database** 
 ## Directory Structure
 
 /data <br>
-ââ users/ <br>
-â ââ f2/78/f278a836652c4e8497dc77a135640e67.json <br>
-ââ products/ <br>
-â ââ 41/9e/419e8c9cf8e2441381b060060460c904.json <br>
-ââ orders/ <br>
-â ââ ... <br>
-ââ events/ <br>
-â ââ ... <br>
+├─ users/ <br>
+│ ├─ f2/78/f278a836652c4e8497dc77a135640e67.json <br>
+├─ products/ <br>
+│ ├─ 41/9e/419e8c9cf8e2441381b060060460c904.json <br>
+├─ orders/ <br>
+│ └─ ... <br>
+├─ events/ <br>
+│ └─ ... <br>
 <br>
 Each JSON file contains:
 
@@ -42,13 +42,13 @@ Each JSON file contains:
 
 ## API Endpoints
 
-POST /database?type=<type> â Add a new item of the specified type
+POST /database?type=<type> → Add a new item of the specified type
 
-GET /database/items?type=<type> â List all items of the specified type
+GET /database/items?type=<type> → List all items of the specified type
 
-GET /database/item?type=<type>&id=<id> â Retrieve a specific item by ID
+GET /database/item?type=<type>&id=<id> → Retrieve a specific item by ID
 
-DELETE /database/item?type=<type>&id=<id> â Delete a specific item by ID
+DELETE /database/item?type=<type>&id=<id> → Delete a specific item by ID
 
 ## Usage
 
