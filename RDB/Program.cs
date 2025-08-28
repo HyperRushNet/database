@@ -24,22 +24,18 @@ app.Use(async (context, next) =>
     {
         await next();
         if (context.Response.StatusCode == 404)
-        {
-            context.Response.StatusCode = 0;
-            await context.Response.Body.FlushAsync();
-        }
+            context.Response.StatusCode = 204; // No Content
     }
     catch
     {
-        context.Response.StatusCode = 0;
-        await context.Response.Body.FlushAsync();
+        context.Response.StatusCode = 204; // No Content
     }
 });
 
 app.MapPost("/database", async (DatabaseService db, HttpRequest req) =>
 {
     var type = req.Query["type"].ToString();
-    if (string.IsNullOrEmpty(type)) return Results.StatusCode(0);
+    if (string.IsNullOrEmpty(type)) return Results.StatusCode(204);
 
     using var reader = new StreamReader(req.Body);
     var body = await reader.ReadToEndAsync();
@@ -60,7 +56,7 @@ app.MapPost("/database", async (DatabaseService db, HttpRequest req) =>
 app.MapGet("/database/item", (DatabaseService db, string type, string id, bool raw = false) =>
 {
     var item = db.GetItem(type, id);
-    if (item == null) return Results.StatusCode(0);
+    if (item == null) return Results.StatusCode(204);
     if (raw) return Results.Json(item);
     return Results.Json(new { item.Id });
 });
@@ -74,12 +70,12 @@ app.MapGet("/database/items", (DatabaseService db, string type) =>
 app.MapDelete("/database/item", (DatabaseService db, string type, string id) =>
 {
     var success = db.DeleteItem(type, id);
-    return success ? Results.Json(new { id }) : Results.StatusCode(0);
+    return success ? Results.Json(new { id }) : Results.StatusCode(204);
 });
 
 app.MapFallback(async context =>
 {
-    context.Response.StatusCode = 0;
+    context.Response.StatusCode = 204; // No Content
     await context.Response.Body.FlushAsync();
 });
 
