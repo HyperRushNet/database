@@ -9,6 +9,3 @@ services:
     autoDeploy: true
     buildCommand: ""
     startCommand: ""
-    envVars:
-      - key: DOTNET_RUNNING_IN_CONTAINER
-        value: true
