@@ -6,13 +6,10 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<DatabaseService>();
-builder.Services.AddCors(options =>
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
 {
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-    });
-});
+    policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+}));
 
 var app = builder.Build();
 app.UseCors();
