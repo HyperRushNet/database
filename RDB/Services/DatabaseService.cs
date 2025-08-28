@@ -1,59 +1,64 @@
 using RDB.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Text.Json;
 
-namespace RDB.Services
+namespace RDB.Services;
+
+public class DatabaseService : IStorageService
 {
-    public class DatabaseService
+    private readonly string _dataDir = "data";
+    private readonly Dictionary<string, List<ItemEnvelope>> _index = new();
+
+    public DatabaseService()
     {
-        // Simuleer de database met een dictionary per type
-        private readonly Dictionary<string, List<ItemEnvelope>> _db = new();
+        if (!Directory.Exists(_dataDir)) Directory.CreateDirectory(_dataDir);
+    }
 
-        // Haal alle items van een type
-        public Task<List<ItemEnvelope>> GetAllItems(string type)
+    public ItemEnvelope AddItem(string type, object payload)
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var relativePath = $"{type}/{id.Substring(0,2)}/{id.Substring(2,2)}/{id}.json";
+        var fullPath = Path.Combine(_dataDir, relativePath.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+
+        var envelope = new ItemEnvelope
         {
-            if (!_db.ContainsKey(type))
-                _db[type] = new List<ItemEnvelope>();
-            return Task.FromResult(_db[type]);
-        }
+            Id = id,
+            Type = type,
+            CreatedAt = DateTime.UtcNow,
+            Payload = payload ?? new {},
+            RelativePath = relativePath
+        };
 
-        // Haal een specifiek item op
-        public Task<ItemEnvelope?> GetItem(string type, string id)
-        {
-            if (!_db.ContainsKey(type)) return Task.FromResult<ItemEnvelope?>(null);
-            var item = _db[type].FirstOrDefault(i => i.Id == id);
-            return Task.FromResult(item);
-        }
+        var json = JsonSerializer.Serialize(envelope, new JsonSerializerOptions { WriteIndented = false });
+        File.WriteAllText(fullPath, json);
+        envelope.SizeBytes = new FileInfo(fullPath).Length;
 
-        // Voeg een item toe
-        public Task<ItemEnvelope> AddItem(string type, Dictionary<string, object> payload)
-        {
-            if (!_db.ContainsKey(type))
-                _db[type] = new List<ItemEnvelope>();
+        if (!_index.ContainsKey(type)) _index[type] = new();
+        _index[type].Add(envelope);
 
-            var item = new ItemEnvelope
-            {
-                Id = Guid.NewGuid().ToString(),
-                Type = type,
-                RelativePath = payload.ContainsKey("RelativePath") ? payload["RelativePath"].ToString() ?? "" : "",
-                Payload = payload,
-                CreatedAt = DateTime.UtcNow
-            };
-            _db[type].Add(item);
-            return Task.FromResult(item);
-        }
+        return envelope;
+    }
 
-        // Verwijder een item
-        public Task<bool> RemoveItem(string type, string id)
-        {
-            if (!_db.ContainsKey(type)) return Task.FromResult(false);
-            var item = _db[type].FirstOrDefault(i => i.Id == id);
-            if (item == null) return Task.FromResult(false);
+    public ItemEnvelope? GetItem(string type, string id)
+    {
+        if (!_index.ContainsKey(type)) return null;
+        return _index[type].FirstOrDefault(i => i.Id == id);
+    }
 
-            _db[type].Remove(item);
-            return Task.FromResult(true);
-        }
+    public IEnumerable<ItemEnvelope> GetItems(string type)
+    {
+        if (!_index.ContainsKey(type)) return Enumerable.Empty<ItemEnvelope>();
+        return _index[type];
+    }
+
+    public bool DeleteItem(string type, string id)
+    {
+        var item = GetItem(type, id);
+        if (item == null) return false;
+
+        var fullPath = Path.Combine(_dataDir, item.RelativePath.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(fullPath)) File.Delete(fullPath);
+        _index[type].Remove(item);
+        return true;
     }
 }
