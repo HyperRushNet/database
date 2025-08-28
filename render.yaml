@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: database
+    name: rdb
     env: docker
     plan: free
     disk:
@@ -10,5 +10,5 @@ services:
     envVars:
       - key: DATA_DIR
         value: /data
-    buildCommand: docker build -t database .
-    startCommand: docker run -p 8080:8080 database
+    buildCommand: docker build -t rdb .
+    startCommand: docker run -p 8080:8080 rdb
