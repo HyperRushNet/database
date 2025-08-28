@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: database
+    env: docker
+    plan: free
+    disk:
+      name: data-disk
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /data
+    buildCommand: docker build -t database .
+    startCommand: dotnet Database.dll
