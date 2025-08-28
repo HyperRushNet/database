@@ -1,55 +1,42 @@
 using Microsoft.AspNetCore.Mvc;
 using RDB.Services;
 using RDB.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace RDB.Controllers
+namespace RDB.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class DatabaseController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DatabaseController : ControllerBase
+    private readonly DatabaseService _db;
+    public DatabaseController(DatabaseService db) => _db = db;
+
+    [HttpPost]
+    public IActionResult AddItem([FromQuery] string type, [FromBody] object payload)
     {
-        private readonly DatabaseService _databaseService;
+        var item = _db.AddItem(type, payload ?? new {});
+        return new JsonResult(new { id = item.Id });
+    }
 
-        public DatabaseController(DatabaseService databaseService)
-        {
-            _databaseService = databaseService;
-        }
+    [HttpGet("item")]
+    public IActionResult GetItem([FromQuery] string type, [FromQuery] string id, [FromQuery] bool raw = false)
+    {
+        var item = _db.GetItem(type, id);
+        if (item == null) return StatusCode(204);
+        return raw ? new JsonResult(item) : new JsonResult(new { item.Id });
+    }
 
-        [HttpGet("{type}")]
-        public async Task<ActionResult<List<ItemEnvelope>>> GetAll(string type)
-        {
-            var items = await _databaseService.GetAllItems(type);
-            return Ok(items);
-        }
+    [HttpGet("items")]
+    public IActionResult GetItems([FromQuery] string type)
+    {
+        var items = _db.GetItems(type).Select(i => new { i.Id });
+        return new JsonResult(items);
+    }
 
-        [HttpGet("{type}/{id}")]
-        public async Task<ActionResult<ItemEnvelope>> Get(string type, string id)
-        {
-            var item = await _databaseService.GetItem(type, id);
-            if (item == null)
-                return NotFound();
-            return Ok(item);
-        }
-
-        [HttpPost("{type}")]
-        public async Task<ActionResult<ItemEnvelope>> Add(string type, [FromBody] Dictionary<string, object> payload)
-        {
-            if (payload == null)
-                return BadRequest("Payload cannot be null.");
-
-            var addedItem = await _databaseService.AddItem(type, payload);
-            return Ok(addedItem);
-        }
-
-        [HttpDelete("{type}/{id}")]
-        public async Task<IActionResult> Remove(string type, string id)
-        {
-            var removed = await _databaseService.RemoveItem(type, id);
-            if (!removed)
-                return NotFound();
-            return NoContent();
-        }
+    [HttpDelete("item")]
+    public IActionResult DeleteItem([FromQuery] string type, [FromQuery] string id)
+    {
+        var success = _db.DeleteItem(type, id);
+        return success ? new JsonResult(new { id }) : StatusCode(204);
     }
 }
