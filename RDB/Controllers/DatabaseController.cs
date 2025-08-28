@@ -7,38 +7,49 @@ using System.Threading.Tasks;
 namespace RDB.Controllers
 {
     [ApiController]
-    [Route("database")]
+    [Route("api/[controller]")]
     public class DatabaseController : ControllerBase
     {
-        private readonly DatabaseService _dbService;
+        private readonly DatabaseService _databaseService;
 
-        public DatabaseController(DatabaseService dbService)
+        public DatabaseController(DatabaseService databaseService)
         {
-            _dbService = dbService;
+            _databaseService = databaseService;
         }
 
-        [HttpPost]
-        public async Task<Models.ItemEnvelope> AddItem([FromQuery] string type, [FromBody] Dictionary<string, object> payload)
+        [HttpGet("{type}")]
+        public async Task<ActionResult<List<ItemEnvelope>>> GetAll(string type)
         {
-            return await _dbService.AddItem(type, payload);
+            var items = await _databaseService.GetAllItems(type);
+            return Ok(items);
         }
 
-        [HttpGet("items")]
-        public async Task<List<Models.ItemEnvelope>> GetItems([FromQuery] string type)
+        [HttpGet("{type}/{id}")]
+        public async Task<ActionResult<ItemEnvelope>> Get(string type, string id)
         {
-            return await _dbService.GetItems(type);
+            var item = await _databaseService.GetItem(type, id);
+            if (item == null)
+                return NotFound();
+            return Ok(item);
         }
 
-        [HttpGet("item")]
-        public async Task<Models.ItemEnvelope> GetItem([FromQuery] string type, [FromQuery] string id)
+        [HttpPost("{type}")]
+        public async Task<ActionResult<ItemEnvelope>> Add(string type, [FromBody] Dictionary<string, object> payload)
         {
-            return await _dbService.GetItem(type, id);
+            if (payload == null)
+                return BadRequest("Payload cannot be null.");
+
+            var addedItem = await _databaseService.AddItem(type, payload);
+            return Ok(addedItem);
         }
 
-        [HttpDelete("item")]
-        public async Task<bool> DeleteItem([FromQuery] string type, [FromQuery] string id)
+        [HttpDelete("{type}/{id}")]
+        public async Task<IActionResult> Remove(string type, string id)
         {
-            return await _dbService.DeleteItem(type, id);
+            var removed = await _databaseService.RemoveItem(type, id);
+            if (!removed)
+                return NotFound();
+            return NoContent();
         }
     }
 }
