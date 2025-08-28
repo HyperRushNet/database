@@ -2,7 +2,7 @@ services:
   - type: web
     name: rdb-database
     env: docker
-    plan: standard
+    plan: free
     docker:
       dockerfilePath: Dockerfile
       imageName: rdb-database
