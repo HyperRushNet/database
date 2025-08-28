@@ -5,8 +5,7 @@ RUN dotnet restore RDB/RDB.csproj
 COPY RDB/ RDB/
 WORKDIR /src/RDB
 RUN dotnet publish RDB.csproj -c Release -o /app
-
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app .
 EXPOSE 8080
