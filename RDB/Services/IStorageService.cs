@@ -4,8 +4,8 @@ namespace RDB.Services;
 
 public interface IStorageService
 {
-    Task SaveItemAsync(ItemEnvelope item);
-    Task<ItemEnvelope?> GetItemAsync(string type, string id);
-    Task<List<ItemEnvelope>> GetAllItemsAsync(string type);
-    Task<bool> DeleteItemAsync(string type, string id);
+    ItemEnvelope AddItem(string type, object payload);
+    ItemEnvelope? GetItem(string type, string id);
+    IEnumerable<ItemEnvelope> GetItems(string type);
+    bool DeleteItem(string type, string id);
 }
