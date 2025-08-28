@@ -1,6 +1,6 @@
 using System.Text.Json;
-using RDB.Models;
 using System.Collections.Concurrent;
+using RDB.Models;
 
 namespace RDB.Services
 {
@@ -12,44 +12,32 @@ namespace RDB.Services
 
         public DatabaseService()
         {
-            LoadAllItems();
-            StartBatchFlush();
-        }
-
-        private void LoadAllItems()
-        {
-            if (!Directory.Exists(_dataDir)) return;
-            foreach (var typeDir in Directory.GetDirectories(_dataDir))
+            if(!Directory.Exists(_dataDir)) Directory.CreateDirectory(_dataDir);
+            foreach(var typeDir in Directory.GetDirectories(_dataDir))
             {
-                foreach (var file in Directory.GetFiles(typeDir, "*.json", SearchOption.AllDirectories))
+                foreach(var file in Directory.GetFiles(typeDir, "*.json", SearchOption.AllDirectories))
                 {
                     var json = File.ReadAllText(file);
                     var item = JsonSerializer.Deserialize<ItemEnvelope>(json);
-                    if (item != null)
-                        _index[$"{item.Type}:{item.Id}"] = item;
+                    if(item != null) _index[$"{item.Type}:{item.Id}"] = item;
                 }
             }
-        }
-
-        private void StartBatchFlush()
-        {
             Task.Run(async () =>
             {
-                while (true)
+                while(true)
                 {
-                    if (_writeQueue.Count > 0)
+                    if(_writeQueue.Count > 0)
                     {
-                        List<ItemEnvelope> batch = new();
-                        while (_writeQueue.TryDequeue(out var item)) batch.Add(item);
-
-                        foreach (var item in batch)
+                        var batch = new List<ItemEnvelope>();
+                        while(_writeQueue.TryDequeue(out var item)) batch.Add(item);
+                        foreach(var item in batch)
                         {
                             var path = Path.Combine(_dataDir, item.RelativePath);
                             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                             File.WriteAllText(path, JsonSerializer.Serialize(item));
                         }
                     }
-                    await Task.Delay(1000); // flush every second
+                    await Task.Delay(1000);
                 }
             });
         }
@@ -70,19 +58,4 @@ namespace RDB.Services
             return item;
         }
 
-        public IEnumerable<ItemEnvelope> GetItems(string type)
-            => _index.Values.Where(i => i.Type == type);
-
-        public ItemEnvelope? GetItem(string type, string id)
-            => _index.TryGetValue($"{type}:{id}", out var item) ? item : null;
-
-        public bool DeleteItem(string type, string id)
-        {
-            if (!_index.TryGetValue($"{type}:{id}", out var item)) return false;
-            _index.TryRemove($"{type}:{id}", out _);
-            var path = Path.Combine(_dataDir, item.RelativePath);
-            if (File.Exists(path)) File.Delete(path);
-            return true;
-        }
-    }
-}
+        public IEnumerable
