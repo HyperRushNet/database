@@ -1,9 +1,14 @@
-namespace RDB.Models;
+using System;
 
-public class ItemEnvelope
+namespace RDB.Models
 {
-    public string Id { get; set; } = null!;
-    public string Type { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
-    public object? Payload { get; set; }
+    public class ItemEnvelope
+    {
+        public string Id { get; set; } = "";
+        public string Type { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public object Payload { get; set; } = new {};
+        public string RelativePath { get; set; } = "";
+        public long SizeBytes { get; set; }
+    }
 }
