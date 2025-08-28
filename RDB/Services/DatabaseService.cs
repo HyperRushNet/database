@@ -58,4 +58,19 @@ namespace RDB.Services
             return item;
         }
 
-        public IEnumerable
+        public IEnumerable<ItemEnvelope> GetItems(string type)
+            => _index.Values.Where(i => i.Type == type);
+
+        public ItemEnvelope? GetItem(string type, string id)
+            => _index.TryGetValue($"{type}:{id}", out var item) ? item : null;
+
+        public bool DeleteItem(string type, string id)
+        {
+            if(!_index.TryGetValue($"{type}:{id}", out var item)) return false;
+            _index.TryRemove($"{type}:{id}", out _);
+            var path = Path.Combine(_dataDir, item.RelativePath);
+            if(File.Exists(path)) File.Delete(path);
+            return true;
+        }
+    }
+}
