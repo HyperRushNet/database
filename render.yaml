@@ -1,10 +1,5 @@
-services:
-- type: web
-  name: api
-  env: docker
-  plan: free
-  dockerfilePath: Dockerfile
-  autoDeploy: true
-  envVars:
-  - key: PORT
-    value: 10000
+type: web
+env: docker
+plan: free
+dockerfilePath: Dockerfile
+autoDeploy: true
