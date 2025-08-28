@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RDB.Services;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,8 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseResponseCompression();
+
+if (!Directory.Exists("data")) Directory.CreateDirectory("data");
 
 app.Use(async (context, next) =>
 {
@@ -40,7 +43,16 @@ app.MapPost("/database", async (DatabaseService db, HttpRequest req) =>
 
     using var reader = new StreamReader(req.Body);
     var body = await reader.ReadToEndAsync();
-    var payload = body.Length > 0 ? System.Text.Json.JsonSerializer.Deserialize<object>(body) : new {};
+    object payload;
+    try
+    {
+        payload = body.Length > 0 ? JsonSerializer.Deserialize<object>(body) ?? new {} : new {};
+    }
+    catch
+    {
+        payload = new {};
+    }
+
     var item = db.AddItem(type, payload);
     return Results.Json(new { id = item.Id });
 });
@@ -71,4 +83,6 @@ app.MapFallback(async context =>
     await context.Response.Body.FlushAsync();
 });
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Add($"http://*:{port}");
 app.Run();
