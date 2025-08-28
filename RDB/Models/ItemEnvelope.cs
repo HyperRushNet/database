@@ -1,11 +1,22 @@
-namespace RDB.Models;
+using System;
+using System.Collections.Generic;
 
-public class ItemEnvelope
+namespace RDB.Models
 {
-    public string Id { get; set; } = string.Empty;
-    public string Type { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-    public Dictionary<string, object> Payload { get; set; } = new();
-    public string RelativePath { get; set; } = string.Empty;
-    public int SizeBytes { get; set; }
+    public class ItemEnvelope
+    {
+        public string Id { get; set; }
+        public string Type { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public Dictionary<string, object> Payload { get; set; }
+        public string RelativePath { get; set; }
+        public long SizeBytes { get; set; }
+
+        public ItemEnvelope()
+        {
+            Id = Guid.NewGuid().ToString("N");
+            CreatedAt = DateTime.UtcNow;
+            Payload = new Dictionary<string, object>();
+        }
+    }
 }
