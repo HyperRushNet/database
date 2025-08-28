@@ -2,7 +2,7 @@ services:
   - type: web
     name: rdb-database
     env: docker
-    plan: free
+    plan: standard
     docker:
       dockerfilePath: Dockerfile
       imageName: rdb-database
@@ -11,3 +11,4 @@ services:
     envVars:
       - key: DOTNET_RUNNING_IN_CONTAINER
         value: "true"
+    autoDeploy: false
