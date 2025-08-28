@@ -1,13 +1,7 @@
-using System;
+namespace RDB.Models;
 
-namespace RDB.Models
+public class IndexEntry
 {
-    public class IndexEntry
-    {
-        public string Id { get; set; } = "";
-        public string Type { get; set; } = "";
-        public string RelativePath { get; set; } = "";
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public long SizeBytes { get; set; } = 0;
-    }
+    public string Id { get; set; } = null!;
+    public string Type { get; set; } = null!;
 }
