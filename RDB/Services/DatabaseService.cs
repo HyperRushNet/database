@@ -41,7 +41,7 @@ public class DatabaseService
         if (!_cache.ContainsKey(type)) _cache[type] = new();
         _cache[type][id] = item;
 
-        return new ItemEnvelope { Id = id }; // minimal response
+        return new ItemEnvelope { Id = id };
     }
 
     public async Task<ItemEnvelope?> GetItem(string type, string id)
@@ -54,7 +54,6 @@ public class DatabaseService
 
     public async Task<List<ItemEnvelope>> ListItems(string type)
     {
-        if (!_cache.ContainsKey(type)) _cache[type] = new();
         var items = new List<ItemEnvelope>();
         var typeDir = Path.Combine(_root, type);
         if (!Directory.Exists(typeDir)) return items;
