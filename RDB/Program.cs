@@ -8,77 +8,66 @@ using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<DatabaseService>();
-builder.Services.AddResponseCompression();
 builder.Services.AddCors(p => p.AddDefaultPolicy(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
 var app = builder.Build();
-
 app.UseCors();
-app.UseResponseCompression();
 
 if (!Directory.Exists("data")) Directory.CreateDirectory("data");
 
-app.Use(async (context, next) =>
+// Get all types
+app.MapGet("/database/types", () =>
 {
-    try
-    {
-        await next();
-        if (context.Response.StatusCode == 404)
-            context.Response.StatusCode = 204; // No Content
-    }
-    catch
-    {
-        context.Response.StatusCode = 204; // No Content
-    }
+    if (!Directory.Exists("data")) return Results.Json(Array.Empty<string>());
+    var types = Directory.GetDirectories("data").Select(d => Path.GetFileName(d));
+    return Results.Json(types);
 });
 
+// Add item
 app.MapPost("/database", async (DatabaseService db, HttpRequest req) =>
 {
     var type = req.Query["type"].ToString();
     if (string.IsNullOrEmpty(type)) return Results.StatusCode(204);
-
     using var reader = new StreamReader(req.Body);
     var body = await reader.ReadToEndAsync();
-    object payload;
-    try
-    {
-        payload = body.Length > 0 ? JsonSerializer.Deserialize<object>(body) ?? new {} : new {};
-    }
-    catch
-    {
-        payload = new {};
-    }
-
+    object payload = new {};
+    try { payload = body.Length>0 ? JsonSerializer.Deserialize<object>(body) ?? new {} : new {}; } catch {}
     var item = db.AddItem(type, payload);
-    return Results.Json(new { id = item.Id });
+    return Results.Json(item); // returns full item, raw JSON
 });
 
-app.MapGet("/database/item", (DatabaseService db, string type, string id, bool raw = false) =>
+// Get single item
+app.MapGet("/database/item", (DatabaseService db, string type, string id) =>
 {
     var item = db.GetItem(type, id);
-    if (item == null) return Results.StatusCode(204);
-    if (raw) return Results.Json(item);
-    return Results.Json(new { item.Id });
+    return item == null ? Results.StatusCode(204) : Results.Json(item);
 });
 
+// List items
 app.MapGet("/database/items", (DatabaseService db, string type) =>
 {
-    var items = db.GetItems(type).Select(i => new { i.Id });
-    return Results.Json(items);
+    var items = db.GetItems(type);
+    return items.Count == 0 ? Results.StatusCode(204) : Results.Json(items);
 });
 
+// Delete item
 app.MapDelete("/database/item", (DatabaseService db, string type, string id) =>
 {
     var success = db.DeleteItem(type, id);
-    return success ? Results.Json(new { id }) : Results.StatusCode(204);
+    return success ? Results.StatusCode(204) : Results.StatusCode(204);
 });
 
-app.MapFallback(async context =>
+// Edit item
+app.MapPut("/database/item", async (DatabaseService db, HttpRequest req) =>
 {
-    context.Response.StatusCode = 204; // No Content
-    await context.Response.Body.FlushAsync();
+    var type = req.Query["type"].ToString();
+    var id = req.Query["id"].ToString();
+    using var reader = new StreamReader(req.Body);
+    var body = await reader.ReadToEndAsync();
+    object payload = new {};
+    try { payload = body.Length>0 ? JsonSerializer.Deserialize<object>(body) ?? new {} : new {}; } catch {}
+    var item = db.UpdateItem(type, id, payload);
+    return item == null ? Results.StatusCode(204) : Results.Json(item);
 });
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Urls.Add($"http://*:{port}");
 app.Run();
