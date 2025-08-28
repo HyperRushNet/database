@@ -7,8 +7,4 @@
     <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Geen extra packages nodig, enkel standaard .NET libraries -->
-  </ItemGroup>
-
 </Project>
