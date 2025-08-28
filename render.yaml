@@ -1,8 +1,13 @@
 services:
   - type: web
-    name: rdb
+    name: rdb-database
     env: docker
     plan: free
-    autoDeploy: true
-    dockerfilePath: Dockerfile
-    healthCheckPath: /database/items?type=users
+    docker:
+      dockerfilePath: Dockerfile
+      imageName: rdb-database
+      buildCommand: docker build -t rdb-database .
+      startCommand: docker run -p 8080:8080 rdb-database
+    envVars:
+      - key: DOTNET_RUNNING_IN_CONTAINER
+        value: "true"
