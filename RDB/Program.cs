@@ -13,7 +13,7 @@ app.MapGet("/database/items", async (string type, DatabaseService db) => await d
 app.MapGet("/database/item", async (string type, string id, DatabaseService db) => await db.GetItem(type, id));
 app.MapPost("/database", async (string type, DatabaseService db, HttpContext ctx) =>
 {
-    var payload = await ctx.Request.ReadFromJsonAsync<Dictionary<string, object>>();
+    var payload = await ctx.Request.ReadFromJsonAsync<Dictionary<string, object>>() ?? new Dictionary<string, object>();
     return await db.AddItem(type, payload);
 });
 app.MapDelete("/database/item", async (string type, string id, DatabaseService db) => await db.DeleteItem(type, id));
