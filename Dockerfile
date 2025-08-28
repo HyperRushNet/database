@@ -1,15 +1,18 @@
+# Use .NET 8 SDK for build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /source
+WORKDIR /app
 
-COPY Api/Api.csproj Api/
-RUN dotnet restore Api/Api.csproj
+COPY ./Api/*.csproj ./Api/
+RUN dotnet restore ./Api/Api.csproj
 
-COPY Api/ Api/
-WORKDIR /source/Api
-RUN dotnet publish Api.csproj -c Release -o /app --self-contained true --no-restore /p:PublishTrimmed=true
+COPY ./Api ./Api
+WORKDIR /app/Api
+RUN dotnet publish -c Release -o out -p:PublishTrimmed=true
 
+# Use runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=build /app .
+COPY --from=build /app/Api/out ./
+
 EXPOSE 10000
-ENTRYPOINT ["./Api"]
+ENTRYPOINT ["dotnet", "Api.dll"]
