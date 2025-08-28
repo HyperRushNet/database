@@ -1,20 +1,74 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using RDB.Services;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSingleton<IStorageService, DatabaseService>();
-builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-    });
-});
+builder.Services.AddSingleton<DatabaseService>();
+builder.Services.AddResponseCompression();
+builder.Services.AddCors(p => p.AddDefaultPolicy(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
 var app = builder.Build();
 
 app.UseCors();
-app.MapControllers();
+app.UseResponseCompression();
+
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+        if (context.Response.StatusCode == 404)
+        {
+            context.Response.StatusCode = 0;
+            await context.Response.Body.FlushAsync();
+        }
+    }
+    catch
+    {
+        context.Response.StatusCode = 0;
+        await context.Response.Body.FlushAsync();
+    }
+});
+
+app.MapPost("/database", async (DatabaseService db, HttpRequest req) =>
+{
+    var type = req.Query["type"].ToString();
+    if (string.IsNullOrEmpty(type)) return Results.StatusCode(0);
+
+    using var reader = new StreamReader(req.Body);
+    var body = await reader.ReadToEndAsync();
+    var payload = body.Length > 0 ? System.Text.Json.JsonSerializer.Deserialize<object>(body) : new {};
+    var item = db.AddItem(type, payload);
+    return Results.Json(new { id = item.Id });
+});
+
+app.MapGet("/database/item", (DatabaseService db, string type, string id, bool raw = false) =>
+{
+    var item = db.GetItem(type, id);
+    if (item == null) return Results.StatusCode(0);
+    if (raw) return Results.Json(item);
+    return Results.Json(new { item.Id });
+});
+
+app.MapGet("/database/items", (DatabaseService db, string type) =>
+{
+    var items = db.GetItems(type).Select(i => new { i.Id });
+    return Results.Json(items);
+});
+
+app.MapDelete("/database/item", (DatabaseService db, string type, string id) =>
+{
+    var success = db.DeleteItem(type, id);
+    return success ? Results.Json(new { id }) : Results.StatusCode(0);
+});
+
+app.MapFallback(async context =>
+{
+    context.Response.StatusCode = 0;
+    await context.Response.Body.FlushAsync();
+});
 
 app.Run();
