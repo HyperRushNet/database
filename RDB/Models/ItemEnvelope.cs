@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text.Json;
 
 namespace RDB.Models
 {
@@ -10,5 +12,10 @@ namespace RDB.Models
         public object Payload { get; set; } = new {};
         public string RelativePath { get; set; } = "";
         public long SizeBytes { get; set; }
+
+        public Dictionary<string, object?> PayloadAsDict()
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(JsonSerializer.Serialize(Payload)) ?? new();
+        }
     }
 }
