@@ -12,6 +12,7 @@ var app = builder.Build();
 
 var dataDir = "/data";
 Directory.CreateDirectory(dataDir);
+File.SetAttributes(dataDir, FileAttributes.Normal); // Zorg voor schrijfrechten
 
 var queue = new ConcurrentQueue<string>();
 var locker = new object();
@@ -23,27 +24,55 @@ app.MapGet("/", () => Results.Ok("Healthy"));
 app.MapGet("/items", () =>
 {
     var items = new List<string>();
-    foreach (var file in Directory.GetFiles(dataDir, "*.txt").OrderBy(f => int.Parse(Path.GetFileNameWithoutExtension(f))))
+    try
     {
-        items.AddRange(File.ReadAllLines(file));
+        foreach (var file in Directory.GetFiles(dataDir, "*.txt").OrderBy(f => int.Parse(Path.GetFileNameWithoutExtension(f))))
+        {
+            items.AddRange(File.ReadAllLines(file));
+        }
+        return Results.Ok(items);
     }
-    return Results.Ok(items);
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fout bij /items: {ex}");
+        File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Fout bij /items: {ex}\n");
+        return Results.StatusCode(500);
+    }
 });
 
 app.MapPost("/items", async (HttpContext context) =>
 {
-    var item = await new StreamReader(context.Request.Body).ReadToEndAsync();
-    if (!string.IsNullOrEmpty(item))
+    try
     {
-        queue.Enqueue(item);
+        var item = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        if (!string.IsNullOrEmpty(item))
+        {
+            queue.Enqueue(item);
+            return Results.Accepted();
+        }
+        return Results.BadRequest("Item mag niet leeg zijn");
     }
-    return Results.Accepted();
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fout bij POST /items: {ex}");
+        File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Fout bij POST /items: {ex}\n");
+        return Results.StatusCode(500);
+    }
 });
 
 app.MapPost("/flush", () =>
 {
-    FlushQueue(null);
-    return Results.Ok();
+    try
+    {
+        FlushQueue(null);
+        return Results.Ok();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fout bij /flush: {ex}");
+        File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Fout bij /flush: {ex}\n");
+        return Results.StatusCode(500);
+    }
 });
 
 app.Run("http://0.0.0.0:10000");
@@ -56,28 +85,51 @@ void FlushQueue(object? state)
     {
         if (queue.IsEmpty) return;
 
-        var chunkFile = Path.Combine(dataDir, $"{nextChunkId++}.txt");
-        using (var writer = new StreamWriter(chunkFile, append: true))
+        try
         {
-            while (queue.TryDequeue(out var item))
+            var chunkFile = Path.Combine(dataDir, $"{nextChunkId++}.txt");
+            using (var writer = new StreamWriter(chunkFile, append: true))
             {
-                writer.WriteLine(item);
+                while (queue.TryDequeue(out var item))
+                {
+                    writer.WriteLine(item);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fout bij FlushQueue: {ex}");
+            File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Fout bij FlushQueue: {ex}\n");
         }
     }
 }
 
 int GetNextChunkId(string dir)
 {
-    var files = Directory.GetFiles(dir, "*.txt");
-    if (files.Length == 0) return 1;
-    return files.Max(f => int.Parse(Path.GetFileNameWithoutExtension(f))) + 1;
+    try
+    {
+        var files = Directory.GetFiles(dir, "*.txt");
+        if (files.Length == 0) return 1;
+        return files.Max(f => int.Parse(Path.GetFileNameWithoutExtension(f))) + 1;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Fout bij GetNextChunkId: {ex}");
+        File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Fout bij GetNextChunkId: {ex}\n");
+        return 1;
+    }
 }
 
-// Handle async exceptions safely
-AppDomain.CurrentDomain.UnhandledException += (sender, e) => Console.WriteLine(e.ExceptionObject);
+// Verbeterde uitzonderingsafhandeling
+AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+{
+    Console.WriteLine($"Onbehandelde uitzondering: {e.ExceptionObject}");
+    File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Onbehandelde uitzondering: {e.ExceptionObject}\n");
+};
+
 TaskScheduler.UnobservedTaskException += (sender, e) =>
 {
-    Console.WriteLine(e.Exception);
+    Console.WriteLine($"Onbehandelde taakuitzondering: {e.Exception}");
+    File.AppendAllText("/data/error.log", $"[{DateTime.UtcNow}] Onbehandelde taakuitzondering: {e.Exception}\n");
     e.SetObserved();
 };
