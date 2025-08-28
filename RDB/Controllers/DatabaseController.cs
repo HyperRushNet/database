@@ -1,54 +1,44 @@
 using Microsoft.AspNetCore.Mvc;
-using RDB.Models;
 using RDB.Services;
+using RDB.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace RDB.Controllers;
-
-[ApiController]
-[Route("database")]
-public class DatabaseController : ControllerBase
+namespace RDB.Controllers
 {
-    private readonly IStorageService _db;
-
-    public DatabaseController(IStorageService db)
+    [ApiController]
+    [Route("database")]
+    public class DatabaseController : ControllerBase
     {
-        _db = db;
-    }
+        private readonly DatabaseService _dbService;
 
-    [HttpPost]
-    public async Task<IActionResult> AddItem([FromQuery] string type, [FromBody] object payload)
-    {
-        var item = new ItemEnvelope
+        public DatabaseController(DatabaseService dbService)
         {
-            Id = Guid.NewGuid().ToString("N"),
-            Type = type,
-            CreatedAt = DateTime.UtcNow,
-            Payload = payload
-        };
-        await _db.SaveItemAsync(item);
-        return Ok(item);
-    }
+            _dbService = dbService;
+        }
 
-    [HttpGet("item")]
-    public async Task<IActionResult> GetItem([FromQuery] string type, [FromQuery] string id)
-    {
-        var item = await _db.GetItemAsync(type, id);
-        if(item == null) return NotFound();
-        return Ok(item);
-    }
+        [HttpPost]
+        public async Task<Models.ItemEnvelope> AddItem([FromQuery] string type, [FromBody] Dictionary<string, object> payload)
+        {
+            return await _dbService.AddItem(type, payload);
+        }
 
-    [HttpGet("items")]
-    public async Task<IActionResult> GetAll([FromQuery] string type)
-    {
-        var list = await _db.GetAllItemsAsync(type);
-        return Ok(list);
-    }
+        [HttpGet("items")]
+        public async Task<List<Models.ItemEnvelope>> GetItems([FromQuery] string type)
+        {
+            return await _dbService.GetItems(type);
+        }
 
-    [HttpDelete("item")]
-    public async Task<IActionResult> DeleteItem([FromQuery] string type, [FromQuery] string id)
-    {
-        var success = await _db.DeleteItemAsync(type, id);
-        if (!success) return NotFound();
-        return Ok(new { deleted = true });
+        [HttpGet("item")]
+        public async Task<Models.ItemEnvelope> GetItem([FromQuery] string type, [FromQuery] string id)
+        {
+            return await _dbService.GetItem(type, id);
+        }
+
+        [HttpDelete("item")]
+        public async Task<bool> DeleteItem([FromQuery] string type, [FromQuery] string id)
+        {
+            return await _dbService.DeleteItem(type, id);
+        }
     }
 }
