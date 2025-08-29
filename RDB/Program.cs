@@ -6,7 +6,7 @@ builder.Services.AddSingleton<IStorageService, DatabaseService>();
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy("UniversalCors", policy =>
     {
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
@@ -14,10 +14,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors();
+app.UseCors("UniversalCors");
 app.MapControllers();
 
-// Gebruik dynamische port van Render
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Urls.Add($"http://*:{port}");
 
