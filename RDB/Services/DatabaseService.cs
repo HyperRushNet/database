@@ -20,10 +20,9 @@ public class DatabaseService : IStorageService, IDisposable
         }
         catch
         {
-            // Als database corrupt is, maak een nieuwe
+            // Database corrupt, verwijder en maak een nieuwe
             if (File.Exists(dbPath))
                 File.Delete(dbPath);
-
             _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
         }
     }
@@ -37,7 +36,7 @@ public class DatabaseService : IStorageService, IDisposable
         }
         catch
         {
-            // Fout bij opslaan wordt genegeerd, geen crash
+            // Fouten bij opslaan worden genegeerd
         }
         return Task.CompletedTask;
     }
@@ -47,7 +46,8 @@ public class DatabaseService : IStorageService, IDisposable
         try
         {
             var col = _db.GetCollection<ItemEnvelope>(type);
-            return Task.FromResult(col.FindById(id));
+            var item = col.FindById(id);
+            return Task.FromResult(item);
         }
         catch
         {
@@ -57,16 +57,30 @@ public class DatabaseService : IStorageService, IDisposable
 
     public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
     {
+        var safeList = new List<ItemEnvelope>();
         try
         {
-            var col = _db.GetCollection<ItemEnvelope>(type);
-            var items = col.FindAll().Skip(skip).Take(take).ToList();
-            return Task.FromResult(items);
+            var col = _db.GetCollection(type);
+
+            foreach (var itemObj in col.FindAll())
+            {
+                try
+                {
+                    if (itemObj is ItemEnvelope item)
+                        safeList.Add(item);
+                }
+                catch
+                {
+                    // Negeer corrupte item
+                }
+            }
         }
         catch
         {
-            return Task.FromResult(new List<ItemEnvelope>());
+            // Hele collectie kan corrupt zijn, return lege lijst
         }
+
+        return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
     }
 
     public Task<bool> DeleteItemAsync(string type, string id)
