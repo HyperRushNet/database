@@ -42,13 +42,66 @@ Each JSON file contains:
 
 ## API Endpoints
 
-POST /database?type=<type> → Add a new item of the specified type
+### Database
+- **POST** `/database?type={type}`  
+  Add a new item of the given type (payload in request body).
 
-GET /database/items?type=<type> → List all items of the specified type
+- **GET** `/database/item?type={type}&id={id}`  
+  Retrieve a specific item by its ID.
 
-GET /database/item?type=<type>&id=<id> → Retrieve a specific item by ID
+- **GET** `/database/items?type={type}`  
+  Retrieve all items of a given type.
 
-DELETE /database/item?type=<type>&id=<id> → Delete a specific item by ID
+- **DELETE** `/database/item?type={type}&id={id}`  
+  Delete a specific item by ID.
+
+---
+
+### Ping <br>
+- **GET** `/ping`  
+  Returns `200 OK` with an empty body.  
+  Useful for minimal-bandwidth health checks.
+
+---
+
+### Info
+- **GET** `/info`  
+  Returns basic service information.  
+  **Example:** <br>
+  ```json
+  {
+    "service": "RDB",
+    "version": "1.0.0",
+    "timeUtc": "2025-08-29T12:34:56Z"
+  }
+  ```
+
+---
+
+### Stats
+- **GET** `/stats?type={type}`  
+  Returns simple statistics for a type.  
+  **Example:** <br>
+  ```json
+  {
+    "type": "users",
+    "count": 42
+  }
+  ```
+
+---
+
+### Health
+- **GET** `/health`  
+  Extended health check with uptime information.  
+  **Example:** <br>
+  ```json
+  {
+    "status": "Healthy",
+    "uptimeSeconds": 6825319,
+    "uptime": "78d 23h 55m"
+  }
+  ```
 
 ## Usage
 
