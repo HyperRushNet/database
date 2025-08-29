@@ -9,12 +9,23 @@ public class DatabaseService : IStorageService, IDisposable
 
     public DatabaseService()
     {
-        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") 
-                      ?? Path.Combine(AppContext.BaseDirectory, "data");
+        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Path.Combine(AppContext.BaseDirectory, "data");
         Directory.CreateDirectory(dataDir);
 
         var dbPath = Path.Combine(dataDir, "rdb.db");
-        _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
+
+        try
+        {
+            _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
+        }
+        catch
+        {
+            // Als database corrupt is, maak een nieuwe
+            if (File.Exists(dbPath))
+                File.Delete(dbPath);
+
+            _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
+        }
     }
 
     public Task SaveItemAsync(ItemEnvelope item)
@@ -24,10 +35,9 @@ public class DatabaseService : IStorageService, IDisposable
             var col = _db.GetCollection<ItemEnvelope>(item.Type);
             col.Upsert(item);
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error saving item: {ex}");
-            throw;
+            // Fout bij opslaan wordt genegeerd, geen crash
         }
         return Task.CompletedTask;
     }
@@ -39,9 +49,8 @@ public class DatabaseService : IStorageService, IDisposable
             var col = _db.GetCollection<ItemEnvelope>(type);
             return Task.FromResult(col.FindById(id));
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error getting item: {ex}");
             return Task.FromResult<ItemEnvelope?>(null);
         }
     }
@@ -54,9 +63,8 @@ public class DatabaseService : IStorageService, IDisposable
             var items = col.FindAll().Skip(skip).Take(take).ToList();
             return Task.FromResult(items);
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error getting all items: {ex}");
             return Task.FromResult(new List<ItemEnvelope>());
         }
     }
@@ -68,9 +76,8 @@ public class DatabaseService : IStorageService, IDisposable
             var col = _db.GetCollection<ItemEnvelope>(type);
             return Task.FromResult(col.Delete(id));
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"Error deleting item: {ex}");
             return Task.FromResult(false);
         }
     }
