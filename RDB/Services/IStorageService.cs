@@ -6,6 +6,6 @@ public interface IStorageService
 {
     Task SaveItemAsync(ItemEnvelope item);
     Task<ItemEnvelope?> GetItemAsync(string type, string id);
-    Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100);
+    Task<List<ItemEnvelope>> GetAllItemsAsync(string type);
     Task<bool> DeleteItemAsync(string type, string id);
 }
