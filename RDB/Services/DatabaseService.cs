@@ -13,31 +13,13 @@ public class DatabaseService : IStorageService, IDisposable
         Directory.CreateDirectory(dataDir);
 
         var dbPath = Path.Combine(dataDir, "rdb.db");
-
-        try
-        {
-            _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
-        }
-        catch
-        {
-            // Database corrupt, verwijder en maak een nieuwe
-            if (File.Exists(dbPath))
-                File.Delete(dbPath);
-            _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
-        }
+        _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
     }
 
     public Task SaveItemAsync(ItemEnvelope item)
     {
-        try
-        {
-            var col = _db.GetCollection<ItemEnvelope>(item.Type);
-            col.Upsert(item);
-        }
-        catch
-        {
-            // Fouten bij opslaan worden genegeerd
-        }
+        var col = _db.GetCollection<ItemEnvelope>(item.Type);
+        col.Upsert(item);
         return Task.CompletedTask;
     }
 
@@ -45,8 +27,11 @@ public class DatabaseService : IStorageService, IDisposable
     {
         try
         {
-            var col = _db.GetCollection<ItemEnvelope>(type);
-            var item = col.FindById(id);
+            var col = _db.GetCollection(type);
+            var doc = col.FindById(id);
+            if (doc == null) return Task.FromResult<ItemEnvelope?>(null);
+
+            var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
             return Task.FromResult(item);
         }
         catch
@@ -58,16 +43,16 @@ public class DatabaseService : IStorageService, IDisposable
     public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
     {
         var safeList = new List<ItemEnvelope>();
+
         try
         {
             var col = _db.GetCollection(type);
-
-            foreach (var itemObj in col.FindAll())
+            foreach (var doc in col.FindAll())
             {
                 try
                 {
-                    if (itemObj is ItemEnvelope item)
-                        safeList.Add(item);
+                    var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
+                    safeList.Add(item);
                 }
                 catch
                 {
@@ -77,7 +62,7 @@ public class DatabaseService : IStorageService, IDisposable
         }
         catch
         {
-            // Hele collectie kan corrupt zijn, return lege lijst
+            // Hele collectie kan corrupt zijn, retourneer lege lijst
         }
 
         return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
