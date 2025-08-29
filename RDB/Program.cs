@@ -6,7 +6,7 @@ builder.Services.AddSingleton<IStorageService, DatabaseService>();
 builder.Services.AddControllers();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("UniversalCors", policy =>
+    options.AddDefaultPolicy(policy =>
     {
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
     });
@@ -14,10 +14,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseCors("UniversalCors");
+app.UseCors();
 app.MapControllers();
-
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Urls.Add($"http://*:{port}");
 
 app.Run();
