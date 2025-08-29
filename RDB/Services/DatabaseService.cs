@@ -9,7 +9,8 @@ public class DatabaseService : IStorageService, IDisposable
 
     public DatabaseService()
     {
-        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? "/tmp/data";
+        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") 
+                      ?? Path.Combine(AppContext.BaseDirectory, "data");
         Directory.CreateDirectory(dataDir);
 
         var dbPath = Path.Combine(dataDir, "rdb.db");
@@ -18,28 +19,60 @@ public class DatabaseService : IStorageService, IDisposable
 
     public Task SaveItemAsync(ItemEnvelope item)
     {
-        var col = _db.GetCollection<ItemEnvelope>(item.Type);
-        col.Upsert(item);
+        try
+        {
+            var col = _db.GetCollection<ItemEnvelope>(item.Type);
+            col.Upsert(item);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving item: {ex}");
+            throw;
+        }
         return Task.CompletedTask;
     }
 
     public Task<ItemEnvelope?> GetItemAsync(string type, string id)
     {
-        var col = _db.GetCollection<ItemEnvelope>(type);
-        return Task.FromResult(col.FindById(id));
+        try
+        {
+            var col = _db.GetCollection<ItemEnvelope>(type);
+            return Task.FromResult(col.FindById(id));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting item: {ex}");
+            return Task.FromResult<ItemEnvelope?>(null);
+        }
     }
 
     public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
     {
-        var col = _db.GetCollection<ItemEnvelope>(type);
-        var items = col.FindAll().Skip(skip).Take(take).ToList();
-        return Task.FromResult(items);
+        try
+        {
+            var col = _db.GetCollection<ItemEnvelope>(type);
+            var items = col.FindAll().Skip(skip).Take(take).ToList();
+            return Task.FromResult(items);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting all items: {ex}");
+            return Task.FromResult(new List<ItemEnvelope>());
+        }
     }
 
     public Task<bool> DeleteItemAsync(string type, string id)
     {
-        var col = _db.GetCollection<ItemEnvelope>(type);
-        return Task.FromResult(col.Delete(id));
+        try
+        {
+            var col = _db.GetCollection<ItemEnvelope>(type);
+            return Task.FromResult(col.Delete(id));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting item: {ex}");
+            return Task.FromResult(false);
+        }
     }
 
     public void Dispose()
