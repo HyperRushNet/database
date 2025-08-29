@@ -9,8 +9,11 @@ public class DatabaseService : IStorageService, IDisposable
 
     public DatabaseService()
     {
-        // LiteDB-bestand in AppContext.BaseDirectory
-        var dbPath = Path.Combine(AppContext.BaseDirectory, "rdb.db");
+        // Writable data folder
+        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Path.Combine(AppContext.BaseDirectory, "data");
+        Directory.CreateDirectory(dataDir);
+
+        var dbPath = Path.Combine(dataDir, "rdb.db");
         _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
     }
 
