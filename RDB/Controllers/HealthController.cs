@@ -9,9 +9,15 @@ public class HealthController : ControllerBase
     [HttpGet]
     public IActionResult CheckHealth()
     {
+        long uptimeSeconds = Environment.TickCount64 / 1000;
+
+        var uptime = TimeSpan.FromSeconds(uptimeSeconds);
+        string humanReadable = $"{(int)uptime.TotalDays}d {uptime.Hours}h {uptime.Minutes}m";
+
         return Ok(new {
             status = "Healthy",
-            uptime = Environment.TickCount64 / 1000 
+            uptimeSeconds,
+            uptime = humanReadable
         });
     }
 }
