@@ -8,7 +8,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("UniversalCors", policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .SetIsOriginAllowed(_ => true);
     });
 });
 
