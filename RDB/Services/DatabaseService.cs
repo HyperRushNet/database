@@ -18,8 +18,15 @@ public class DatabaseService : IStorageService, IDisposable
 
     public Task SaveItemAsync(ItemEnvelope item)
     {
-        var col = _db.GetCollection<ItemEnvelope>(item.Type);
-        col.Upsert(item);
+        try
+        {
+            var col = _db.GetCollection<ItemEnvelope>(item.Type);
+            col.Upsert(item);
+        }
+        catch
+        {
+            // fallback: log of negeer
+        }
         return Task.CompletedTask;
     }
 
@@ -62,14 +69,15 @@ public class DatabaseService : IStorageService, IDisposable
                 }
                 catch
                 {
-                    // negeer corrupte item
+                    // negeer corrupte items
                 }
             }
         }
         catch
         {
-            // hele collectie corrupt of type bestaat niet
+            // collectie bestaat niet of is corrupt
         }
+
         return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
     }
 
