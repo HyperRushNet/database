@@ -13,17 +13,17 @@ RDB (Recursive Database) is a **lightweight, type-agnostic JSON file database** 
 - **CORS Enabled**: Can be accessed from frontend apps or dashboards.
 
 ## Directory Structure
-
-/data <br>
-├─ users/ <br>
-│ ├─ f2/78/f278a836652c4e8497dc77a135640e67.json <br>
-├─ products/ <br>
-│ ├─ 41/9e/419e8c9cf8e2441381b060060460c904.json <br>
-├─ orders/ <br>
-│ └─ ... <br>
-├─ events/ <br>
-│ └─ ... <br>
-<br>
+```text
+/data
+├─ users/
+│ ├─ f2/78/f278a836652c4e8497dc77a135640e67.json
+├─ products/
+│ ├─ 41/9e/419e8c9cf8e2441381b060060460c904.json
+├─ orders/
+│ └─ ...
+├─ events/
+│ └─ ...
+```
 Each JSON file contains:
 
 ```json
