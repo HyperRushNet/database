@@ -31,8 +31,15 @@ public class DatabaseService : IStorageService, IDisposable
             var doc = col.FindById(id);
             if (doc == null) return Task.FromResult<ItemEnvelope?>(null);
 
-            var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
-            return Task.FromResult(item);
+            try
+            {
+                var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
+                return Task.FromResult(item);
+            }
+            catch
+            {
+                return Task.FromResult<ItemEnvelope?>(null);
+            }
         }
         catch
         {
@@ -43,7 +50,6 @@ public class DatabaseService : IStorageService, IDisposable
     public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
     {
         var safeList = new List<ItemEnvelope>();
-
         try
         {
             var col = _db.GetCollection(type);
@@ -56,15 +62,14 @@ public class DatabaseService : IStorageService, IDisposable
                 }
                 catch
                 {
-                    // Negeer corrupte item
+                    // negeer corrupte item
                 }
             }
         }
         catch
         {
-            // Hele collectie kan corrupt zijn, retourneer lege lijst
+            // hele collectie corrupt of type bestaat niet
         }
-
         return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
     }
 
