@@ -1,57 +1,47 @@
-using System.Text.Json;
+using LiteDB;
 using RDB.Models;
 
 namespace RDB.Services;
 
-public class DatabaseService : IStorageService
+public class DatabaseService : IStorageService, IDisposable
 {
-    private readonly string _root = Path.Combine(AppContext.BaseDirectory, "data");
+    private readonly LiteDatabase _db;
 
     public DatabaseService()
     {
-        Directory.CreateDirectory(_root);
+        // LiteDB-bestand in AppContext.BaseDirectory
+        var dbPath = Path.Combine(AppContext.BaseDirectory, "rdb.db");
+        _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
     }
 
-    public async Task SaveItemAsync(ItemEnvelope item)
+    public Task SaveItemAsync(ItemEnvelope item)
     {
-        string typeDir = Path.Combine(_root, item.Type);
-        Directory.CreateDirectory(typeDir);
-        string filePath = Path.Combine(typeDir, item.Id + ".json");
-        var json = JsonSerializer.Serialize(item);
-        await File.WriteAllTextAsync(filePath, json);
+        var col = _db.GetCollection<ItemEnvelope>(item.Type);
+        col.Upsert(item);
+        return Task.CompletedTask;
     }
 
-    public async Task<ItemEnvelope?> GetItemAsync(string type, string id)
+    public Task<ItemEnvelope?> GetItemAsync(string type, string id)
     {
-        string filePath = Path.Combine(_root, type, id + ".json");
-        if (!File.Exists(filePath)) return null;
-        var json = await File.ReadAllTextAsync(filePath);
-        return JsonSerializer.Deserialize<ItemEnvelope>(json);
+        var col = _db.GetCollection<ItemEnvelope>(type);
+        return Task.FromResult(col.FindById(id));
     }
 
-    public async Task<List<ItemEnvelope>> GetAllItemsAsync(string type)
+    public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
     {
-        string typeDir = Path.Combine(_root, type);
-        if (!Directory.Exists(typeDir)) return new List<ItemEnvelope>();
-        var files = Directory.GetFiles(typeDir, "*.json", SearchOption.TopDirectoryOnly);
-        var list = new List<ItemEnvelope>();
-        foreach(var f in files)
-        {
-            var json = await File.ReadAllTextAsync(f);
-            var item = JsonSerializer.Deserialize<ItemEnvelope>(json);
-            if(item != null) list.Add(item);
-        }
-        return list;
+        var col = _db.GetCollection<ItemEnvelope>(type);
+        var items = col.FindAll().Skip(skip).Take(take).ToList();
+        return Task.FromResult(items);
     }
 
     public Task<bool> DeleteItemAsync(string type, string id)
     {
-        string filePath = Path.Combine(_root, type, id + ".json");
-        if (File.Exists(filePath))
-        {
-            File.Delete(filePath);
-            return Task.FromResult(true);
-        }
-        return Task.FromResult(false);
+        var col = _db.GetCollection<ItemEnvelope>(type);
+        return Task.FromResult(col.Delete(id));
+    }
+
+    public void Dispose()
+    {
+        _db.Dispose();
     }
 }
