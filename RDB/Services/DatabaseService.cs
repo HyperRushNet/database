@@ -25,7 +25,7 @@ public class DatabaseService : IStorageService, IDisposable
         }
         catch
         {
-            // fallback: log of negeer
+            // fallback: negeer of log
         }
         return Task.CompletedTask;
     }
@@ -69,13 +69,13 @@ public class DatabaseService : IStorageService, IDisposable
                 }
                 catch
                 {
-                    // negeer corrupte items
+                    // negeer corrupte item
                 }
             }
         }
         catch
         {
-            // collectie bestaat niet of is corrupt
+            // collectie kan corrupt zijn, return lege lijst
         }
 
         return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
