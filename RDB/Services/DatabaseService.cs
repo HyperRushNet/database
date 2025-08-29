@@ -1,101 +1,57 @@
-using LiteDB;
+using System.Text.Json;
 using RDB.Models;
 
 namespace RDB.Services;
 
-public class DatabaseService : IStorageService, IDisposable
+public class DatabaseService : IStorageService
 {
-    private readonly LiteDatabase _db;
+    private readonly string _root = Path.Combine(AppContext.BaseDirectory, "data");
 
     public DatabaseService()
     {
-        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Path.Combine(AppContext.BaseDirectory, "data");
-        Directory.CreateDirectory(dataDir);
-
-        var dbPath = Path.Combine(dataDir, "rdb.db");
-        _db = new LiteDatabase($"Filename={dbPath};Connection=shared");
+        Directory.CreateDirectory(_root);
     }
 
-    public Task SaveItemAsync(ItemEnvelope item)
+    public async Task SaveItemAsync(ItemEnvelope item)
     {
-        try
-        {
-            var col = _db.GetCollection<ItemEnvelope>(item.Type);
-            col.Upsert(item);
-        }
-        catch
-        {
-            // fallback: negeer of log
-        }
-        return Task.CompletedTask;
+        string typeDir = Path.Combine(_root, item.Type);
+        Directory.CreateDirectory(typeDir);
+        string filePath = Path.Combine(typeDir, item.Id + ".json");
+        var json = JsonSerializer.Serialize(item);
+        await File.WriteAllTextAsync(filePath, json);
     }
 
-    public Task<ItemEnvelope?> GetItemAsync(string type, string id)
+    public async Task<ItemEnvelope?> GetItemAsync(string type, string id)
     {
-        try
-        {
-            var col = _db.GetCollection(type);
-            var doc = col.FindById(id);
-            if (doc == null) return Task.FromResult<ItemEnvelope?>(null);
-
-            try
-            {
-                var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
-                return Task.FromResult(item);
-            }
-            catch
-            {
-                return Task.FromResult<ItemEnvelope?>(null);
-            }
-        }
-        catch
-        {
-            return Task.FromResult<ItemEnvelope?>(null);
-        }
+        string filePath = Path.Combine(_root, type, id + ".json");
+        if (!File.Exists(filePath)) return null;
+        var json = await File.ReadAllTextAsync(filePath);
+        return JsonSerializer.Deserialize<ItemEnvelope>(json);
     }
 
-    public Task<List<ItemEnvelope>> GetAllItemsAsync(string type, int skip = 0, int take = 100)
+    public async Task<List<ItemEnvelope>> GetAllItemsAsync(string type)
     {
-        var safeList = new List<ItemEnvelope>();
-        try
+        string typeDir = Path.Combine(_root, type);
+        if (!Directory.Exists(typeDir)) return new List<ItemEnvelope>();
+        var files = Directory.GetFiles(typeDir, "*.json", SearchOption.TopDirectoryOnly);
+        var list = new List<ItemEnvelope>();
+        foreach(var f in files)
         {
-            var col = _db.GetCollection(type);
-            foreach (var doc in col.FindAll())
-            {
-                try
-                {
-                    var item = BsonMapper.Global.ToObject<ItemEnvelope>(doc);
-                    safeList.Add(item);
-                }
-                catch
-                {
-                    // negeer corrupte item
-                }
-            }
+            var json = await File.ReadAllTextAsync(f);
+            var item = JsonSerializer.Deserialize<ItemEnvelope>(json);
+            if(item != null) list.Add(item);
         }
-        catch
-        {
-            // collectie kan corrupt zijn, return lege lijst
-        }
-
-        return Task.FromResult(safeList.Skip(skip).Take(take).ToList());
+        return list;
     }
 
     public Task<bool> DeleteItemAsync(string type, string id)
     {
-        try
+        string filePath = Path.Combine(_root, type, id + ".json");
+        if (File.Exists(filePath))
         {
-            var col = _db.GetCollection<ItemEnvelope>(type);
-            return Task.FromResult(col.Delete(id));
+            File.Delete(filePath);
+            return Task.FromResult(true);
         }
-        catch
-        {
-            return Task.FromResult(false);
-        }
-    }
-
-    public void Dispose()
-    {
-        _db.Dispose();
+        return Task.FromResult(false);
     }
 }
