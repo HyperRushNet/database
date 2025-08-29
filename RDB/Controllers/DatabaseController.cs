@@ -15,7 +15,6 @@ public class DatabaseController : ControllerBase
         _db = db;
     }
 
-
     [HttpPost]
     public async Task<IActionResult> AddItem([FromQuery] string type, [FromBody] object payload)
     {
@@ -30,7 +29,6 @@ public class DatabaseController : ControllerBase
         return Ok(item);
     }
 
-
     [HttpGet("item")]
     public async Task<IActionResult> GetItem([FromQuery] string type, [FromQuery] string id)
     {
@@ -39,20 +37,16 @@ public class DatabaseController : ControllerBase
         return Ok(item);
     }
 
-
     [HttpGet("items")]
     public async Task<IActionResult> GetAll(
         [FromQuery] string type,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100)
     {
-
         if (take > 1000) take = 1000;
-
         var list = await _db.GetAllItemsAsync(type, skip, take);
         return Ok(list);
     }
-
 
     [HttpDelete("item")]
     public async Task<IActionResult> DeleteItem([FromQuery] string type, [FromQuery] string id)
