@@ -9,8 +9,7 @@ public class DatabaseService : IStorageService, IDisposable
 
     public DatabaseService()
     {
-        // Writable data folder
-        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? Path.Combine(AppContext.BaseDirectory, "data");
+        var dataDir = Environment.GetEnvironmentVariable("DATA_DIR") ?? "/tmp/data";
         Directory.CreateDirectory(dataDir);
 
         var dbPath = Path.Combine(dataDir, "rdb.db");
