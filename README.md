@@ -113,19 +113,19 @@ curl -X POST "https://[your-app].onrender.com/database?type=users" \
 ```
 
 ### Retrieve all items of a type:
-
+```text
 curl "https://[your-app].onrender.com/database/items?type=users"
-
+```
 
 ### Retrieve a single item:
-
+```text
 curl "https://[your-app].onrender.com/database/item?type=users&id=<item-id>"
-
+```
 
 ### Delete an item:
-
+```text
 curl -X DELETE "https://[your-app].onrender.com/database/item?type=users&id=<item-id>"
-
+```
 ## Advantages
 
 - Transparent, human-readable storage
